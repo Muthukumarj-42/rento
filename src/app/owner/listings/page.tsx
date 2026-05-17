@@ -20,7 +20,7 @@ interface Listing {
   rating: number | null;
   review_count: number;
   created_at: string;
-  product_images: { image_url: string }[];
+  product_images: { url: string; sort_order: number }[];
 }
 
 export default function OwnerListingsPage() {
@@ -35,7 +35,7 @@ export default function OwnerListingsPage() {
 
     const { data, error } = await supabase
       .from('products')
-      .select('*, product_images(image_url)')
+      .select('*, product_images(url, sort_order)')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -105,7 +105,7 @@ export default function OwnerListingsPage() {
       ) : (
         <div className="space-y-4">
           {listings.map((listing, i) => {
-            const thumbUrl = listing.product_images?.[0]?.image_url;
+            const thumbUrl = listing.product_images?.[0]?.url;
             return (
               <motion.div
                 key={listing.id}

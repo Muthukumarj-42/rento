@@ -48,6 +48,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const Sidebar = () => (
     <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col">
+      {/* Back to Browse */}
+      <div className="px-4 pt-4 pb-2">
+        <Link
+          href="/browse"
+          className="flex items-center gap-2 text-xs text-gray-500 hover:text-blue-600 font-medium transition-colors group"
+        >
+          <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
+          Back to Browse
+        </Link>
+      </div>
+
       {/* User info */}
       <div className="p-5 border-b border-gray-100">
         <div className="flex items-center gap-3">

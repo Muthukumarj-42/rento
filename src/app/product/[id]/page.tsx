@@ -32,7 +32,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         .select(`
           *,
           category:categories(*),
-          images:product_images(*),
+          images:product_images(url, sort_order),
           owner:profiles(id, full_name, avatar_url, city)
         `)
         .eq('id', id)
@@ -43,16 +43,29 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         return;
       }
 
-      setProduct(data);
+      // Normalize DB 'url' to 'image_url' for UI compatibility
+      const normalized = {
+        ...data,
+        images: (data.images || [])
+          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map((img: any) => ({ image_url: img.url })),
+      };
+      setProduct(normalized);
 
       const { data: similarData } = await supabase
         .from('products')
-        .select('*, category:categories(*), images:product_images(*), owner:profiles(*)')
+        .select('*, category:categories(*), images:product_images(url, sort_order), owner:profiles(*)')
         .eq('category_id', data.category_id)
         .neq('id', data.id)
+        .eq('status', 'active')
         .limit(4);
         
-      if (similarData) setSimilar(similarData);
+      if (similarData) {
+        setSimilar(similarData.map(p => ({
+          ...p,
+          images: (p.images || []).map((img: any) => ({ image_url: img.url })),
+        })));
+      }
       setLoading(false);
     };
 

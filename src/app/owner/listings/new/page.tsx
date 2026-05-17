@@ -171,16 +171,17 @@ export default function NewListingPage() {
       return;
     }
 
-    // Insert images
+    // Insert images - DB column is 'url' not 'image_url'
     const imageRows = successfulImages.map((img, idx) => ({
       product_id: product.id,
-      image_url: img.url!,
-      order: idx,
+      url: img.url!,
+      sort_order: idx,
     }));
 
     const { error: imgError } = await supabase.from('product_images').insert(imageRows);
     if (imgError) {
-      toast.warning('Listing created but some images failed to save.');
+      console.error('Image Insert Error:', imgError);
+      // Don't block — listing is still live without images
     }
 
     toast.success('🎉 Listing published successfully!');

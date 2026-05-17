@@ -10,7 +10,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MOCK_PRODUCTS, CATEGORIES, INDIAN_CITIES } from '@/lib/data';
+import { CATEGORIES, INDIAN_CITIES } from '@/lib/data';
 import { type SearchFilters } from '@/types';
 
 const SORT_OPTIONS = [
@@ -22,10 +22,11 @@ const SORT_OPTIONS = [
 
 function BrowseContent() {
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
-    query: searchParams.get('q') || '',
-    city: searchParams.get('city') || 'Coimbatore',
-    category: searchParams.get('category') || '',
+    query: '',
+    city: 'Coimbatore',
+    category: '',
     sortBy: 'newest',
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -36,6 +37,17 @@ function BrowseContent() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Hydration-safe: only run client-side
+  useEffect(() => {
+    setMounted(true);
+    setFilters({
+      query: searchParams.get('q') || '',
+      city: searchParams.get('city') || 'Coimbatore',
+      category: searchParams.get('category') || '',
+      sortBy: 'newest',
+    });
+  }, []);
+
   useEffect(() => {
     const fetchProducts = async () => {
       const { createClient } = await import('@/lib/supabase/client');
@@ -44,17 +56,20 @@ function BrowseContent() {
         .from('products')
         .select(`
           *,
-          product_images (image_url),
+          product_images (url, sort_order),
           category:categories (*),
           owner:profiles (id, full_name, avatar_url, city)
         `)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
       
       if (data) {
-        // Transform real data to match the Product interface expected by UI
+        // Normalize DB 'url' column to 'image_url' for UI compatibility
         const formatted = data.map(p => ({
           ...p,
-          images: p.product_images?.map((img: any) => ({ image_url: img.image_url })) || [],
+          images: (p.product_images || [])
+            .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .map((img: any) => ({ image_url: img.url })),
           category: p.category,
           owner: p.owner
         }));
@@ -126,6 +141,7 @@ function BrowseContent() {
                   value={filters.query}
                   onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
                   className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -135,6 +151,7 @@ function BrowseContent() {
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex-shrink-0 gap-1.5 rounded-xl relative ${showFilters ? 'border-blue-500 text-blue-600 bg-blue-50' : ''}`}
+                suppressHydrationWarning
               >
                 <SlidersHorizontal size={14} />
                 Filters
@@ -150,6 +167,7 @@ function BrowseContent() {
                 value={filters.city}
                 onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
                 className="flex-shrink-0 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-blue-400"
+                suppressHydrationWarning
               >
                 {INDIAN_CITIES.map((c) => (
                   <option key={c} value={c}>{c}</option>

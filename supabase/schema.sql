@@ -33,13 +33,21 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3. Add any missing columns in case it was renamed from the old users table
+-- 3. Add any missing columns
 DO $$
 BEGIN
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city TEXT;
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT;
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE;
+  -- Business fields for owners
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS shop_name TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS pickup_address TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS support_phone TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS working_hours TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS gst_number TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS delivery_available BOOLEAN DEFAULT FALSE;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS business_description TEXT;
 EXCEPTION
   WHEN duplicate_column THEN null;
 END $$;
