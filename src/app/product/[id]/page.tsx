@@ -32,7 +32,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         .select(`
           *,
           category:categories(*),
-          images:product_images(url, sort_order),
+          images:product_images(image_url, order),
           owner:profiles(id, full_name, avatar_url, city)
         `)
         .eq('id', id)
@@ -43,18 +43,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         return;
       }
 
-      // Normalize DB 'url' to 'image_url' for UI compatibility
       const normalized = {
         ...data,
         images: (data.images || [])
-          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          .map((img: any) => ({ image_url: img.url })),
+          .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+          .map((img: any) => ({ image_url: img.image_url })),
       };
       setProduct(normalized);
 
       const { data: similarData } = await supabase
         .from('products')
-        .select('*, category:categories(*), images:product_images(url, sort_order), owner:profiles(*)')
+        .select('*, category:categories(*), images:product_images(image_url, order), owner:profiles(*)')
         .eq('category_id', data.category_id)
         .neq('id', data.id)
         .eq('status', 'active')
@@ -63,7 +62,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       if (similarData) {
         setSimilar(similarData.map(p => ({
           ...p,
-          images: (p.images || []).map((img: any) => ({ image_url: img.url })),
+          images: (p.images || []).map((img: any) => ({ image_url: img.image_url })),
         })));
       }
       setLoading(false);

@@ -78,10 +78,19 @@ export default function OwnerProfilePage() {
         phone: profile.phone,
         city: profile.city,
         bio: profile.bio,
+        // Business fields
+        shop_name: profile.shop_name,
+        pickup_address: profile.pickup_address,
+        support_phone: profile.support_phone,
+        working_hours: profile.working_hours,
+        gst_number: profile.gst_number,
+        delivery_available: profile.delivery_available,
+        business_description: profile.business_description,
       })
       .eq('id', authUser.id);
 
     if (error) {
+      console.error('Profile save error:', error);
       toast.error(`Failed to save: ${error.message}`);
     } else {
       toast.success('Profile updated successfully! ✅');

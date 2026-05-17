@@ -97,11 +97,19 @@ CREATE TABLE IF NOT EXISTS public.products (
   status          TEXT NOT NULL DEFAULT 'active'
                   CHECK (status IN ('draft', 'pending_approval', 'active', 'paused', 'rejected')),
   is_featured     BOOLEAN NOT NULL DEFAULT FALSE,
+  delivery_available BOOLEAN NOT NULL DEFAULT FALSE,
   rating          NUMERIC(3, 2),
   review_count    INT NOT NULL DEFAULT 0,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add delivery_available to existing products table if it doesn't have it
+DO $$
+BEGIN
+  ALTER TABLE public.products ADD COLUMN IF NOT EXISTS delivery_available BOOLEAN NOT NULL DEFAULT FALSE;
+EXCEPTION WHEN duplicate_column THEN null;
+END $$;
 
 -- ============================================
 -- PRODUCT IMAGES

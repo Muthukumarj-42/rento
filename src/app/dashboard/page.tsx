@@ -23,12 +23,21 @@ export default function DashboardPage() {
       // Fetch bookings
       const { data: bData } = await supabase
         .from('bookings')
-        .select('*, product:products(*, images:product_images(image_url))')
+        .select('*, product:products(*, product_images(image_url, order))')
         .eq('renter_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (bData) setBookings(bData);
+      if (bData) {
+        const mapped = bData.map(b => ({
+          ...b,
+          product: b.product ? {
+            ...b.product,
+            images: (b.product.product_images || []).map((img: any) => ({ image_url: img.image_url })),
+          } : null,
+        }));
+        setBookings(mapped);
+      }
 
       // Fetch stats
       const { count: bCount } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('renter_id', user.id);

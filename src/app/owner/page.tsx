@@ -51,7 +51,7 @@ export default function OwnerDashboard() {
       // Top products
       const { data: prods } = await supabase
         .from('products')
-        .select('*, product_images(url, sort_order)')
+        .select('*, product_images(image_url, order)')
         .eq('owner_id', user.id)
         .order('review_count', { ascending: false })
         .limit(3);
@@ -64,7 +64,7 @@ export default function OwnerDashboard() {
       setRecentBookings(bookings || []);
       setTopProducts((prods || []).map(p => ({
         ...p,
-        images: (p.product_images || []).map((img: any) => ({ image_url: img.url })),
+        images: (p.product_images || []).map((img: any) => ({ image_url: img.image_url })),
       })));
       setLoading(false);
     };

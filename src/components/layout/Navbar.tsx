@@ -78,6 +78,19 @@ export function Navbar() {
 
   const handleSwitchRole = async (newRole: UserRole) => {
     if (!user) return;
+    
+    // Block owner→customer switch if they have active listings
+    if (newRole === 'customer' && role === 'owner') {
+      const { count } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', user.id);
+      if (count && count > 0) {
+        toast.error('You cannot switch to Customer after creating listings. Pause or delete all listings first.');
+        return;
+      }
+    }
+    
     const { error } = await supabase
       .from('profiles')
       .update({ role: newRole })

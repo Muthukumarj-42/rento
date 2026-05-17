@@ -56,7 +56,7 @@ function BrowseContent() {
         .from('products')
         .select(`
           *,
-          product_images (url, sort_order),
+          product_images (image_url, order),
           category:categories (*),
           owner:profiles (id, full_name, avatar_url, city)
         `)
@@ -64,12 +64,11 @@ function BrowseContent() {
         .order('created_at', { ascending: false });
       
       if (data) {
-        // Normalize DB 'url' column to 'image_url' for UI compatibility
         const formatted = data.map(p => ({
           ...p,
           images: (p.product_images || [])
-            .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-            .map((img: any) => ({ image_url: img.url })),
+            .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+            .map((img: any) => ({ image_url: img.image_url })),
           category: p.category,
           owner: p.owner
         }));

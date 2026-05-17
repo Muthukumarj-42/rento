@@ -51,6 +51,7 @@ export default function NewListingPage() {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deliveryAvailable, setDeliveryAvailable] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
@@ -69,6 +70,25 @@ export default function NewListingPage() {
     resolver: zodResolver(listingSchema),
     defaultValues: { price_per_day: 500, deposit_amount: 2000, city: 'Coimbatore', category_id: '' },
   });
+
+  // Auto-fill city/area/delivery from owner profile
+  useEffect(() => {
+    const autoFill = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('city, pickup_address, delivery_available')
+        .eq('id', user.id)
+        .single();
+      if (ownerProfile) {
+        if (ownerProfile.city) setValue('city', ownerProfile.city);
+        if (ownerProfile.pickup_address) setValue('area', ownerProfile.pickup_address);
+        if (ownerProfile.delivery_available) setDeliveryAvailable(true);
+      }
+    };
+    autoFill();
+  }, []);
 
   const watchedPrice = watch('price_per_day') || 0;
   const watchedDeposit = watch('deposit_amount') || 0;
@@ -161,6 +181,7 @@ export default function NewListingPage() {
         city: data.city,
         area: data.area,
         status: 'active',
+        delivery_available: deliveryAvailable,
       })
       .select()
       .single();
@@ -171,17 +192,20 @@ export default function NewListingPage() {
       return;
     }
 
-    // Insert images - DB column is 'url' not 'image_url'
+    // Insert images - actual DB columns: image_url, order
     const imageRows = successfulImages.map((img, idx) => ({
       product_id: product.id,
-      url: img.url!,
-      sort_order: idx,
+      image_url: img.url!,
+      order: idx,
     }));
 
+    console.log('Inserting imageRows:', JSON.stringify(imageRows));
     const { error: imgError } = await supabase.from('product_images').insert(imageRows);
     if (imgError) {
-      console.error('Image Insert Error:', imgError);
-      // Don't block — listing is still live without images
+      console.error('Image Insert Error:', imgError.message, imgError.code);
+      toast.warning('Listing created! Images had issues — you can add them from listings page.');
+    } else {
+      console.log('Images inserted successfully!');
     }
 
     toast.success('🎉 Listing published successfully!');
@@ -292,6 +316,25 @@ export default function NewListingPage() {
                   <Input id="area" placeholder="e.g., RS Puram" {...register('area')}
                     className={`h-11 rounded-xl ${errors.area ? 'border-red-400' : ''}`} />
                   {errors.area && <p className="text-red-500 text-xs mt-1">{errors.area.message}</p>}
+                </div>
+              </div>
+
+              {/* Delivery Option */}
+              <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <input
+                  type="checkbox"
+                  id="delivery_available"
+                  checked={deliveryAvailable}
+                  onChange={e => setDeliveryAvailable(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 accent-blue-600 flex-shrink-0"
+                />
+                <div>
+                  <Label htmlFor="delivery_available" className="text-sm font-semibold text-gray-900 cursor-pointer">
+                    🚚 Delivery Available
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Customers can request delivery to their location (you set the terms at pickup)
+                  </p>
                 </div>
               </div>
             </motion.div>
