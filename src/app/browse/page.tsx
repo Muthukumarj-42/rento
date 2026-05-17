@@ -33,7 +33,7 @@ function BrowseContent() {
   const [minRating, setMinRating] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,18 +45,20 @@ function BrowseContent() {
         .select(`
           *,
           product_images (image_url),
-          category:categories (*)
+          category:categories (*),
+          owner:profiles (id, full_name, avatar_url, city)
         `)
         .eq('status', 'active');
       
-      if (data && data.length > 0) {
+      if (data) {
         // Transform real data to match the Product interface expected by UI
         const formatted = data.map(p => ({
           ...p,
-          images: p.product_images.map((img: any) => ({ image_url: img.image_url })),
-          category: p.category
+          images: p.product_images?.map((img: any) => ({ image_url: img.image_url })) || [],
+          category: p.category,
+          owner: p.owner
         }));
-        setProducts(formatted as any);
+        setProducts(formatted);
       }
       setLoading(false);
     };

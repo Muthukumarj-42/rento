@@ -97,7 +97,6 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     </aside>
   );
 
-  return (
   const TopNavbar = () => (
     <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 h-16 flex items-center justify-between px-4 md:px-8">
       <div className="flex items-center gap-4">

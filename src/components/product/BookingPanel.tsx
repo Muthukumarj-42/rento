@@ -60,6 +60,7 @@ export function BookingPanel({ product, onAuthRequired }: BookingPanelProps) {
           endDate,
           deliveryType,
           totalAmount: pricing.totalAmount,
+          renterId: user.id,
         }),
       });
 

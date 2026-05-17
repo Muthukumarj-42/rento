@@ -16,38 +16,31 @@ const supabase = createClient(
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { totalAmount, productId, startDate, endDate, deliveryType, renterId } = body;
+    const { amount, productId, startDate, endDate, ownerId, renterId } = body;
 
     // 1. Validate the request
-    if (!totalAmount || !productId || !renterId) {
+    if (!amount || !productId || !renterId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-
-    // Need owner_id to pass to verify
-    const { data: product } = await supabase.from('products').select('owner_id').eq('id', productId).single();
 
     // 2. Create Razorpay order
     // Amount is in paise for INR (1 INR = 100 paise)
     const options = {
-      amount: Math.round(totalAmount * 100),
+      amount: Math.round(amount * 100),
       currency: 'INR',
       receipt: `receipt_${Date.now()}_${productId}`,
+      notes: {
+        productId,
+        renterId,
+        startDate,
+        endDate
+      }
     };
 
     const order = await razorpay.orders.create(options);
 
-    // Return the created order and bookingData for the verify step
-    return NextResponse.json({ 
-      orderId: order.id,
-      bookingData: {
-        productId,
-        startDate,
-        endDate,
-        totalAmount,
-        ownerId: product?.owner_id,
-        renterId,
-      }
-    }, { status: 200 });
+    // Return the created order
+    return NextResponse.json({ order }, { status: 200 });
   } catch (error: any) {
     console.error('Error creating Razorpay order:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });

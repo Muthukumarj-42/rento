@@ -63,11 +63,11 @@ export default function NewListingPage() {
       if (data) setCategories(data);
     };
     fetchCategories();
-  }, [supabase]);
+  }, []);
 
   const { register, handleSubmit, watch, formState: { errors }, trigger, setValue, getValues } = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
-    defaultValues: { price_per_day: 500, deposit_amount: 2000, city: 'Coimbatore' },
+    defaultValues: { price_per_day: 500, deposit_amount: 2000, city: 'Coimbatore', category_id: '' },
   });
 
   const watchedPrice = watch('price_per_day') || 0;

@@ -1,95 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
-export async function POST(req: NextRequest) {
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const body = await req.json();
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingData } = body;
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      bookingData,
-    } = await req.json();
-
-    // Verify Razorpay signature
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+    // Verify signature
+    const generated_signature = crypto
+      .createHmac('sha256', 'Qwd3NMJOhxH04L497fY6KiTV')
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (expectedSignature !== razorpay_signature) {
-      return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 });
+    if (generated_signature !== razorpay_signature) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // Create booking
+    // Insert booking into Supabase
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
         product_id: bookingData.productId,
-        renter_id: user.id,
+        renter_id: bookingData.renterId,
         owner_id: bookingData.ownerId,
         start_date: bookingData.startDate,
         end_date: bookingData.endDate,
-        days: bookingData.days,
-        rental_amount: bookingData.rentalAmount,
-        deposit_amount: bookingData.depositAmount,
-        platform_fee: bookingData.platformFee,
-        gst_amount: bookingData.gstAmount,
-        total_amount: bookingData.totalAmount,
-        delivery_type: bookingData.deliveryType,
-        status: 'pending',
+        total_price: bookingData.totalAmount,
+        status: 'confirmed',
       })
       .select()
       .single();
 
-    if (bookingError || !booking) {
-      throw new Error(bookingError?.message || 'Failed to create booking');
-    }
+    if (bookingError) throw bookingError;
 
-    // Create payment record
-    await supabase.from('payments').insert({
-      booking_id: booking.id,
-      razorpay_order_id,
-      razorpay_payment_id,
-      amount: bookingData.totalAmount,
-      currency: 'INR',
-      status: 'paid',
-    });
-
-    // Block product availability dates
-    const dates: string[] = [];
-    const current = new Date(bookingData.startDate);
-    const end = new Date(bookingData.endDate);
-    while (current <= end) {
-      dates.push(current.toISOString().split('T')[0]);
-      current.setDate(current.getDate() + 1);
-    }
-    await supabase.from('product_availability').insert(
-      dates.map((date) => ({ product_id: bookingData.productId, date, available: false, booking_id: booking.id }))
-    );
-
-    // Notify owner
+    // Create a notification for the owner
     await supabase.from('notifications').insert({
       user_id: bookingData.ownerId,
-      type: 'booking_request',
-      title: 'New Booking Request!',
-      body: `You have a new booking request for ${bookingData.startDate} – ${bookingData.endDate}`,
-      link: `/owner/bookings/${booking.id}`,
-      read: false,
+      type: 'booking',
+      title: 'New Booking Request! 🎉',
+      body: `Someone just booked your item for ${bookingData.startDate}.`,
+      link: `/owner/bookings`,
     });
 
-    return NextResponse.json({ bookingId: booking.id, success: true });
-  } catch (err) {
-    console.error('Payment verify error:', err);
-    return NextResponse.json({ error: 'Payment verification failed' }, { status: 500 });
+    return NextResponse.json({ success: true, bookingId: booking.id }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error verifying Razorpay payment:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

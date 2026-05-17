@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Menu, X, Bell, ChevronDown, MapPin,
   LayoutDashboard, Heart, Settings, LogOut, RefreshCw, User as UserIcon,
+  Package, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -110,13 +111,13 @@ export function Navbar() {
         )}
       >
         <div className="container-main">
-          <div className="flex h-20 items-center justify-between gap-6">
+          <div className="flex h-16 items-center justify-between gap-6">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-200">
                 <span className="text-white font-black text-sm">R</span>
               </div>
-              <span className="text-2xl font-black text-gray-900 tracking-tight">Rento</span>
+              <span className="text-xl font-black text-gray-900 tracking-tight">Rento</span>
             </Link>
 
             {/* Desktop Nav Links */}
@@ -225,25 +226,40 @@ export function Navbar() {
                         </div>
                       </div>
 
-                      <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/profile')}>
-                        <UserIcon size={16} className="text-gray-500" /> View Profile
-                      </DropdownMenuItem>
-
-                      {role === 'owner' && (
-                        <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/owner')}>
-                          <LayoutDashboard size={16} className="text-gray-500" /> Owner Dashboard
-                        </DropdownMenuItem>
+                      {role === 'owner' ? (
+                        <>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/owner')}>
+                            <LayoutDashboard size={16} className="text-gray-500" /> Owner Dashboard
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/owner/listings')}>
+                            <Package size={16} className="text-gray-500" /> My Listings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/owner/profile')}>
+                            <Settings size={16} className="text-gray-500" /> Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/owner/profile')}>
+                            <UserIcon size={16} className="text-gray-500" /> View Profile
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/dashboard')}>
+                            <LayoutDashboard size={16} className="text-gray-500" /> Dashboard
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/dashboard/bookings')}>
+                            <Calendar size={16} className="text-gray-500" /> My Bookings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/dashboard/favorites')}>
+                            <Heart size={16} className="text-gray-500" /> Saved Items
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/dashboard/notifications')}>
+                            <Bell size={16} className="text-gray-500" /> Notifications
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/profile')}>
+                            <UserIcon size={16} className="text-gray-500" /> Profile
+                          </DropdownMenuItem>
+                        </>
                       )}
-
-                      {role === 'customer' && (
-                        <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/dashboard/favorites')}>
-                          <Heart size={16} className="text-gray-500" /> Saved Items
-                        </DropdownMenuItem>
-                      )}
-
-                      <DropdownMenuItem className="rounded-xl gap-3 py-2.5 cursor-pointer" onClick={() => router.push('/profile?tab=settings')}>
-                        <Settings size={16} className="text-gray-500" /> Settings
-                      </DropdownMenuItem>
 
                       <DropdownMenuSeparator className="my-1" />
 

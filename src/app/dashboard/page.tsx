@@ -2,48 +2,65 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Calendar, Heart, Package, ArrowRight, Star, MapPin, Clock } from 'lucide-react';
+import { Calendar, Heart, Package, ArrowRight, Star, MapPin, Clock, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 import { formatINR, formatDate, getBookingStatusColor } from '@/lib/utils';
-import { MOCK_PRODUCTS } from '@/lib/data';
-
-const MOCK_BOOKINGS = [
-  {
-    id: 'b1',
-    product: MOCK_PRODUCTS[0],
-    start_date: '2024-04-01',
-    end_date: '2024-04-03',
-    total_amount: 8127,
-    status: 'active' as const,
-  },
-  {
-    id: 'b2',
-    product: MOCK_PRODUCTS[2],
-    start_date: '2024-04-10',
-    end_date: '2024-04-12',
-    total_amount: 927,
-    status: 'pending' as const,
-  },
-  {
-    id: 'b3',
-    product: MOCK_PRODUCTS[4],
-    start_date: '2024-03-15',
-    end_date: '2024-03-18',
-    total_amount: 2727,
-    status: 'completed' as const,
-  },
-];
-
-const STATS = [
-  { icon: Calendar, label: 'Total Bookings', value: '8', color: 'text-blue-600 bg-blue-50' },
-  { icon: Package, label: 'Active Rentals', value: '1', color: 'text-green-600 bg-green-50' },
-  { icon: Heart, label: 'Saved Items', value: '12', color: 'text-red-500 bg-red-50' },
-  { icon: Star, label: 'Avg. Rating Given', value: '4.8', color: 'text-yellow-600 bg-yellow-50' },
-];
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const supabase = createClient();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalBookings: 0, activeRentals: 0, savedItems: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchData = async () => {
+      // Fetch bookings
+      const { data: bData } = await supabase
+        .from('bookings')
+        .select('*, product:products(*, images:product_images(image_url))')
+        .eq('renter_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (bData) setBookings(bData);
+
+      // Fetch stats
+      const { count: bCount } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('renter_id', user.id);
+      const { count: aCount } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('renter_id', user.id).eq('status', 'active');
+      const { count: sCount } = await supabase.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+
+      setStats({
+        totalBookings: bCount || 0,
+        activeRentals: aCount || 0,
+        savedItems: sCount || 0,
+      });
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [user, supabase]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
+
+  const STATS = [
+    { icon: Calendar, label: 'Total Bookings', value: stats.totalBookings.toString(), color: 'text-blue-600 bg-blue-50' },
+    { icon: Package, label: 'Active Rentals', value: stats.activeRentals.toString(), color: 'text-green-600 bg-green-50' },
+    { icon: Heart, label: 'Saved Items', value: stats.savedItems.toString(), color: 'text-red-500 bg-red-50' },
+    { icon: Star, label: 'Avg. Rating Given', value: '4.8', color: 'text-yellow-600 bg-yellow-50' },
+  ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -91,15 +108,15 @@ export default function DashboardPage() {
         </div>
 
         <div className="divide-y divide-gray-50">
-          {MOCK_BOOKINGS.map((booking) => (
+          {bookings.length > 0 ? bookings.map((booking) => (
             <div key={booking.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
               <img
-                src={booking.product.images?.[0]?.image_url}
-                alt={booking.product.title}
-                className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                src={booking.product?.images?.[0]?.image_url || 'https://via.placeholder.com/150'}
+                alt={booking.product?.title || 'Product'}
+                className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-gray-100"
               />
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-gray-900 truncate">{booking.product.title}</p>
+                <p className="font-semibold text-sm text-gray-900 truncate">{booking.product?.title}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Clock size={11} className="text-gray-400" />
                   <p className="text-xs text-gray-500">
@@ -108,17 +125,21 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <MapPin size={10} className="text-gray-400" />
-                  <p className="text-xs text-gray-500">{booking.product.city}</p>
+                  <p className="text-xs text-gray-500">{booking.product?.city}</p>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="font-bold text-gray-900 text-sm">{formatINR(booking.total_amount)}</p>
+                <p className="font-bold text-gray-900 text-sm">{formatINR(booking.total_price)}</p>
                 <Badge className={`text-xs mt-1 border-0 ${getBookingStatusColor(booking.status)}`}>
                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                 </Badge>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="p-8 text-center text-gray-500 text-sm">
+              You haven't made any bookings yet.
+            </div>
+          )}
         </div>
       </motion.div>
 

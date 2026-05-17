@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, use } from 'react';
 import { notFound } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Star, MapPin, Shield, Share2, Heart, MessageCircle, ChevronRight } from 'lucide-react';
-import { use } from 'react';
+import { Star, MapPin, Shield, Share2, Heart, MessageCircle, ChevronRight, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { ProductGallery } from '@/components/product/ProductGallery';
@@ -14,19 +13,61 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { MOCK_PRODUCTS } from '@/lib/data';
 import { formatINR, formatDate } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [authOpen, setAuthOpen] = useState(false);
+  const [product, setProduct] = useState<any>(null);
+  const [similar, setSimilar] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:categories(*),
+          images:product_images(*),
+          owner:profiles(id, full_name, avatar_url, city)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        setLoading(false);
+        return;
+      }
+
+      setProduct(data);
+
+      const { data: similarData } = await supabase
+        .from('products')
+        .select('*, category:categories(*), images:product_images(*), owner:profiles(*)')
+        .eq('category_id', data.category_id)
+        .neq('id', data.id)
+        .limit(4);
+        
+      if (similarData) setSimilar(similarData);
+      setLoading(false);
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
+
   if (!product) notFound();
-
-  const similar = MOCK_PRODUCTS.filter(
-    (p) => p.id !== product.id && p.category_id === product.category_id
-  ).slice(0, 4);
 
   const mockReviews = [
     {
