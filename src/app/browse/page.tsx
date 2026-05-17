@@ -137,7 +137,7 @@ function BrowseContent() {
                 <input
                   type="text"
                   placeholder="Search rentals..."
-                  value={filters.query}
+                  value={filters.query ?? ''}
                   onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
                   className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
                   suppressHydrationWarning
@@ -163,7 +163,7 @@ function BrowseContent() {
 
               {/* City */}
               <select
-                value={filters.city}
+                value={filters.city ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
                 className="flex-shrink-0 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-blue-400"
                 suppressHydrationWarning
